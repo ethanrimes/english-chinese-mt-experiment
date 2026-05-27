@@ -63,7 +63,7 @@ sources:
     format: moses_zip
     expected_pair_files:
       en: OpenSubtitles.en-zh_cn.en
-      zh: OpenSubtitles.en-zh_cn.zh
+      zh: OpenSubtitles.en-zh_cn.zh_cn       # the Moses zip names the Chinese file .zh_cn, not .zh
     # Raised to 6M to give the 5M scale enough headroom after filtering (~50% kept).
     sample_lines: 6000000
 
