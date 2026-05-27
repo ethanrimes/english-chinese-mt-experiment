@@ -1,0 +1,29 @@
+# Base model + tokenizer extension config.
+
+base_model:
+  hf_id: HuggingFaceTB/SmolLM2-360M
+  local_cache_dir: models/cached/SmolLM2-360M
+  trust_remote_code: false
+
+tokenizer_extension:
+  # SentencePiece BPE settings for the Chinese vocabulary.
+  vocab_size: 16000
+  character_coverage: 0.9995
+  model_type: bpe
+  byte_fallback: true
+  # Output directory for the trained SP model and the merged HF tokenizer.
+  sp_model_dir: tokenizers/built/zh_sp
+  merged_tokenizer_dir: tokenizers/built/merged
+
+  # Special control tokens added on top of the merged vocab.
+  special_tokens:
+    - "<|en2zh|>"
+    - "<|zh2en|>"
+    - "<|src|>"
+    - "<|tgt|>"
+
+  # Initialization for new embedding rows.
+  new_row_init_mean: 0.0
+  new_row_init_std: 0.02
+
+extended_model_dir: models/extended/SmolLM2-360M-ext

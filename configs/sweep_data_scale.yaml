@@ -1,0 +1,40 @@
+# Defines the 4-run data-scaling sweep. Each entry produces one Azure ML job
+# that trains one model at one data scale. Hyperparameters are identical;
+# only `scale` and `experiment_tag` differ.
+
+base_config: configs/training.yaml
+
+runs:
+  - name: scale-10k
+    scale: 10000
+    experiment_tag: scale_10k
+    # smaller dataset => more epochs to keep total examples seen comparable
+    overrides:
+      trainer.num_train_epochs: 10
+      trainer.eval_steps: 100
+      trainer.save_steps: 100
+      trainer.logging_steps: 20
+
+  - name: scale-50k
+    scale: 50000
+    experiment_tag: scale_50k
+    overrides:
+      trainer.num_train_epochs: 6
+      trainer.eval_steps: 200
+      trainer.save_steps: 200
+
+  - name: scale-100k
+    scale: 100000
+    experiment_tag: scale_100k
+    overrides:
+      trainer.num_train_epochs: 5
+      trainer.eval_steps: 300
+      trainer.save_steps: 300
+
+  - name: scale-500k
+    scale: 500000
+    experiment_tag: scale_500k
+    overrides:
+      trainer.num_train_epochs: 3
+      trainer.eval_steps: 500
+      trainer.save_steps: 500

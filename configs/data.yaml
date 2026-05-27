@@ -1,0 +1,104 @@
+# Data sources for English↔Chinese MT.
+#
+# Each source has a download spec and a category. Categories are used by
+# 02_prepare_data.py for filtering thresholds (web-mined corpora get stricter
+# similarity filtering than human-translated ones).
+#
+# `profiles` at the bottom selects which sources to include for a given
+# `--profile` flag of the download script. The 'full' profile pulls everything
+# the study needs; 'smoke' pulls only small, fast sources.
+
+raw_root: data/raw
+interim_root: data/interim
+processed_root: data/processed
+splits_root: data/splits
+
+sources:
+  # ---------------- Evaluation only (never seen during training) ----------------
+  flores200:
+    category: eval
+    description: FLORES-200 dev + devtest. Professional Wikipedia-domain pairs.
+    huggingface: openlanguagedata/flores_plus
+    config: default
+    splits: [dev, devtest]
+    langs:
+      eng_Latn: en
+      zho_Hans: zh
+
+  # ---------------- High-quality human translation ----------------
+  news_commentary_v18:
+    category: clean_parallel
+    description: News-Commentary v18 (zh-en). Newswire register. ~313K pairs.
+    url: https://data.statmt.org/news-commentary/v18.1/training/news-commentary-v18.1.en-zh.tsv.gz
+    format: tsv_gz
+    columns: [en, zh]
+
+  ted2020:
+    category: clean_parallel
+    description: TED2020 (OPUS). Talks register. ~400K zh-en pairs.
+    huggingface: Helsinki-NLP/opus-100
+    config: en-zh
+    note: opus-100 includes a TED slice; we use the full opus-100 zh-en here.
+    splits: [train, validation]
+
+  # ---------------- Wikipedia-mined ----------------
+  wikimatrix:
+    category: web_mined
+    description: WikiMatrix v1 (OPUS) zh-en. ~2M raw, needs LASER filter.
+    url: https://object.pouta.csc.fi/OPUS-WikiMatrix/v1/moses/en-zh.txt.zip
+    format: moses_zip
+    expected_pair_files:
+      en: WikiMatrix.en-zh.en
+      zh: WikiMatrix.en-zh.zh
+
+  # ---------------- Subtitles (colloquial register) ----------------
+  open_subtitles:
+    category: subtitles
+    description: OpenSubtitles2018 (OPUS) zh-en. Very large, sampled.
+    url: https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/moses/en-zh_cn.txt.zip
+    format: moses_zip
+    expected_pair_files:
+      en: OpenSubtitles.en-zh_cn.en
+      zh: OpenSubtitles.en-zh_cn.zh
+    sample_lines: 1500000
+
+  # ---------------- UN proceedings (very formal) ----------------
+  un_pc:
+    category: government
+    description: MultiUN (OPUS) zh-en. UN proceedings.
+    url: https://object.pouta.csc.fi/OPUS-MultiUN/v1/moses/en-zh.txt.zip
+    format: moses_zip
+    expected_pair_files:
+      en: MultiUN.en-zh.en
+      zh: MultiUN.en-zh.zh
+    sample_lines: 1500000
+
+# How much of each (post-filter) source contributes to the final mix.
+# Used by 05_create_subsets.py to do stratified sampling for each scale.
+source_mix:
+  news_commentary_v18: 0.30
+  ted2020:             0.25
+  wikimatrix:          0.25
+  open_subtitles:      0.15
+  un_pc:               0.05
+
+# Filtering thresholds applied during 02_prepare_data.py
+filters:
+  min_tokens: 3
+  max_tokens: 200
+  ratio_low: 0.5
+  ratio_high: 2.0
+  lid_confidence: 0.7
+  min_zh_han_ratio: 0.30
+  min_en_ascii_ratio: 0.80
+  # LaBSE / LASER similarity filter (off by default - opt in for web_mined sources)
+  enable_semantic_filter: false
+  semantic_threshold: 0.75
+
+profiles:
+  smoke:
+    include: [flores200, news_commentary_v18]
+  light:
+    include: [flores200, news_commentary_v18, ted2020]
+  full:
+    include: [flores200, news_commentary_v18, ted2020, wikimatrix, open_subtitles, un_pc]
