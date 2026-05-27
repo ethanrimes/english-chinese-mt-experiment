@@ -1,0 +1,9 @@
+# Azure ML workspace spec.
+# Apply with: az ml workspace create -f azure/workspace.yaml
+$schema: https://azuremlschemas.azureedge.net/latest/workspace.schema.json
+name: ecmt-ws
+location: eastus
+description: English-Chinese MT scaling-study workspace.
+tags:
+  project: ecmt
+  owner: ethankallett

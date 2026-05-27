@@ -1,0 +1,13 @@
+# GPU compute cluster spec. Apply with:
+#   az ml compute create -f azure/compute.yaml -w <ws> -g <rg>
+$schema: https://azuremlschemas.azureedge.net/latest/amlCompute.schema.json
+name: gpu-a100-80g
+type: amlcompute
+size: Standard_NC24ads_A100_v4   # 1× A100 80GB
+min_instances: 0
+max_instances: 4
+idle_time_before_scale_down: 600  # 10 minutes
+tier: dedicated
+description: 1× A100-80GB cluster for ECMT training runs.
+tags:
+  project: ecmt

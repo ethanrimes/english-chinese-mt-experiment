@@ -1,0 +1,58 @@
+# Template for a single training job. submit_aml_job.py reads this and fills
+# in placeholders ({{ scale }}, {{ run_name }}, {{ overrides }}) before
+# calling `az ml job create`.
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+display_name: "ecmt-{{ run_name }}"
+experiment_name: "{{ experiment_name }}"
+description: "ECMT SFT run at data scale {{ scale }}."
+
+code: ../
+
+environment: azureml:ecmt-pytorch@latest
+compute: azureml:gpu-a100-80g
+
+inputs:
+  splits:
+    type: uri_folder
+    path: "{{ splits_data_uri }}"      # e.g. azureml://datastores/.../paths/splits
+    mode: ro_mount
+  extended_model:
+    type: uri_folder
+    path: "{{ extended_model_uri }}"
+    mode: ro_mount
+
+outputs:
+  runs:
+    type: uri_folder
+    mode: rw_mount
+
+environment_variables:
+  HF_HOME: /workspace/.hf
+  TRANSFORMERS_CACHE: /workspace/.hf/transformers
+  HF_DATASETS_CACHE: /workspace/.hf/datasets
+  WANDB_PROJECT: english-chinese-mt
+  WANDB_RUN_GROUP: "{{ experiment_tag }}"
+  WANDB_NAME: "{{ run_name }}"
+  WANDB_API_KEY: "${{secrets.WANDB_API_KEY}}"
+
+command: |
+  set -euxo pipefail
+  pip install -e .
+  # Mount splits + extended model into the locations the configs expect.
+  mkdir -p data
+  ln -sfn ${{ inputs.splits }} data/splits
+  ln -sfn ${{ inputs.extended_model }} models/extended
+  mkdir -p models/runs
+  ln -sfn ${{ outputs.runs }} models/runs
+  python scripts/06_train.py \
+    --scale {{ scale }} \
+    --yes \
+    {{ overrides_cli }}
+
+resources:
+  instance_count: 1
+
+tags:
+  project: ecmt
+  scale: "{{ scale }}"
+  experiment_tag: "{{ experiment_tag }}"

@@ -1,0 +1,8 @@
+# Azure ML environment. Built on top of the official PyTorch curated image.
+# Apply with: az ml environment create -f azure/environment.yaml -w <ws> -g <rg>
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+name: ecmt-pytorch
+description: PyTorch 2.5 + transformers + trl + comet + fasttext-langdetect.
+build:
+  path: ../
+  dockerfile_path: azure/Dockerfile
