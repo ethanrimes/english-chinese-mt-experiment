@@ -154,11 +154,28 @@ az ml environment create `
   --resource-group ecmt-rg
 ```
 
-This kicks off a remote Docker build on ACR using `azure/Dockerfile`. First
-build is slow (5–15 min) because it bakes the COMET model into the image.
-Subsequent builds reuse cached layers.
+**Where does the build run?** Not on your laptop, not on the GPU node. The
+build runs on Azure Container Registry's managed build pool (CPU-only, ~10
+min, ~$0.10). Your machine just uploads the Dockerfile + build context.
 
-You can watch progress in the Azure portal under
+```
+local  --upload-->  ACR build task  --pushes image-->  your ACR
+                                                            │
+                       GPU node pulls image at job time <───┘
+                       (~1-2 min, once per fresh node)
+```
+
+You **do not need Docker installed locally**. `az ml environment create`
+handles the whole flow server-side.
+
+You can — and should — run this step right after step 4 (workspace exists)
+while GPU quota is still being approved. The environment build doesn't need
+a compute cluster.
+
+First build is slow (5–15 min) because the Dockerfile bakes the COMET model
+into the image. Subsequent updates reuse cached layers.
+
+Watch progress in the Azure portal under
 **Machine Learning Studio → Assets → Environments → ecmt-pytorch**.
 
 ---
