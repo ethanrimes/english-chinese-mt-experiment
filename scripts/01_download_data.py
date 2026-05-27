@@ -119,20 +119,32 @@ def download_flores200(cfg: dict, raw_root: Path) -> None:
 
 
 def download_ted2020_opus100(cfg: dict, raw_root: Path) -> None:
-    """We pull opus-100 zh-en train+validation and save to parquet."""
-    from datasets import load_dataset
+    """opus-100 zh-en train+validation. We pull the parquet files directly via
+    huggingface_hub (current versions of `datasets` no longer support the
+    loading-script that ships with this dataset)."""
+    from huggingface_hub import hf_hub_download
 
     out_dir = raw_root / "ted2020"
     out_dir.mkdir(parents=True, exist_ok=True)
+    repo = cfg["huggingface"]            # Helsinki-NLP/opus-100
+    cfg_name = cfg["config"]              # 'en-zh'
     for split in cfg["splits"]:
         out_path = out_dir / f"{split}.parquet"
         if out_path.exists():
             logger.info(f"  ted2020/{split}: parquet exists — skipping")
             continue
-        logger.info(f"  ted2020/{split}: loading from HF opus-100 en-zh")
-        ds = load_dataset(cfg["huggingface"], cfg["config"], split=split)
-        ds.to_parquet(out_path)
-        logger.info(f"  ted2020/{split}: wrote {len(ds)} rows to {out_path}")
+        remote = f"{cfg_name}/{split}-00000-of-00001.parquet"
+        logger.info(f"  ted2020/{split}: hf_hub_download {repo!r} {remote!r}")
+        local = hf_hub_download(repo_id=repo, filename=remote, repo_type="dataset")
+        import shutil
+        shutil.copyfile(local, out_path)
+        # Quick row count
+        try:
+            import pyarrow.parquet as pq
+            n = pq.read_metadata(out_path).num_rows
+            logger.info(f"  ted2020/{split}: wrote parquet with {n:,} rows")
+        except Exception:
+            logger.info(f"  ted2020/{split}: wrote parquet (size unknown)")
 
 
 DOWNLOADERS = {
