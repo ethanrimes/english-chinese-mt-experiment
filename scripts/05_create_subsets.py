@@ -90,19 +90,61 @@ def main() -> int:
         by_source[s].sort(key=lambda r: _stable_hash(r, args.seed))
         logger.info(f"  source {s}: {len(by_source[s]):,} eligible rows")
 
-    # Build the biggest set first; smaller sets are its prefixes.
-    big_pool: list[dict] = []
+    # Plan source allocations. First pass: weight × biggest. Second pass: any
+    # source that wants more than it has gets capped, and its shortfall is
+    # redistributed across sources that still have headroom (proportional to
+    # their remaining capacity). This preserves the source diversity intent
+    # while actually using available data.
+    allocations: dict[str, int] = {}
+    headroom: dict[str, int] = {}
+    shortfall = 0
     for src, weight in mix.items():
+        want = int(round(weight * biggest))
         if src not in by_source:
-            logger.warning(f"  source {src} declared in mix but absent from data; allocating 0")
+            # Absent sources still create shortfall — we want their share filled
+            # from whoever has headroom (typically UN at large scales).
+            logger.warning(f"  source {src} declared in mix but absent from data; allocating 0; shortfall +{want:,}")
+            allocations[src] = 0
+            shortfall += want
             continue
-        target_n = int(round(weight * biggest))
-        available = by_source[src]
-        if target_n > len(available):
-            logger.warning(f"  source {src}: want {target_n:,} but only {len(available):,} rows; using all available")
-            target_n = len(available)
-        big_pool.extend(available[:target_n])
-        logger.info(f"  {src}: contributing {target_n:,} rows ({weight * 100:.1f}% of {biggest:,})")
+        avail = len(by_source[src])
+        if want > avail:
+            shortfall += want - avail
+            allocations[src] = avail
+            logger.info(f"  {src}: cap at {avail:,} (wanted {want:,}); shortfall +{want - avail:,}")
+        else:
+            allocations[src] = want
+            headroom[src] = avail - want
+
+    # Distribute shortfall to sources with remaining capacity, proportional to that capacity.
+    while shortfall > 0 and headroom:
+        total_room = sum(headroom.values())
+        if total_room == 0:
+            break
+        distributed_this_round = 0
+        for src, room in list(headroom.items()):
+            if shortfall <= 0:
+                break
+            extra = min(room, max(1, (room * shortfall) // total_room))
+            allocations[src] += extra
+            headroom[src] -= extra
+            if headroom[src] == 0:
+                del headroom[src]
+            shortfall -= extra
+            distributed_this_round += extra
+        if distributed_this_round == 0:
+            break
+
+    big_pool: list[dict] = []
+    for src, n in allocations.items():
+        if n == 0 or src not in by_source:
+            continue
+        big_pool.extend(by_source[src][:n])
+        weight_pct = (mix.get(src, 0.0)) * 100.0
+        actual_pct = (n / biggest) * 100.0 if biggest else 0.0
+        logger.info(
+            f"  {src}: contributing {n:,} rows  (mix-weight {weight_pct:.1f}%, actual {actual_pct:.1f}% of {biggest:,})"
+        )
 
     # Final shuffle of the biggest pool, deterministic and consistent across calls.
     big_pool.sort(key=lambda r: _stable_hash(r, args.seed + 1))
