@@ -2,9 +2,10 @@
 
 Teaching a small **English-only** language model (SmolLM2-360M) to translate English ↔ Chinese
 via supervised fine-tuning on parallel data. Designed as a **data-scaling study**: we train
-**four separate models**, one per data scale (10K / 50K / 100K / 500K parallel pairs), with
-identical hyperparameters. Within each model's training run we save checkpoint snapshots
-every `save_steps` so we can trace quality-over-training for every scale. The four resulting
+**six separate models**, one per data scale (10K / 50K / 100K / 500K / 1M / 5M parallel
+pairs), with identical hyperparameters (epoch count tuned per scale to keep total examples
+seen comparable). Within each model's training run we save checkpoint snapshots every
+`save_steps` so we can trace quality-over-training for every scale. The six resulting
 curves give us a quality-vs-data picture when all Chinese linguistic knowledge must be
 acquired from scratch.
 

@@ -54,13 +54,14 @@ sources:
   # ---------------- Subtitles (colloquial register) ----------------
   open_subtitles:
     category: subtitles
-    description: OpenSubtitles2018 (OPUS) zh-en. Very large, sampled.
+    description: OpenSubtitles2018 (OPUS) zh-en. Very large; sample cap controls disk.
     url: https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/moses/en-zh_cn.txt.zip
     format: moses_zip
     expected_pair_files:
       en: OpenSubtitles.en-zh_cn.en
       zh: OpenSubtitles.en-zh_cn.zh
-    sample_lines: 1500000
+    # Raised to 6M to give the 5M scale enough headroom after filtering (~50% kept).
+    sample_lines: 6000000
 
   # ---------------- UN proceedings (very formal) ----------------
   un_pc:
@@ -71,16 +72,44 @@ sources:
     expected_pair_files:
       en: MultiUN.en-zh.en
       zh: MultiUN.en-zh.zh
-    sample_lines: 1500000
+    sample_lines: 5000000
+
+  # ---------------- Web-mined breadth (for the 1M/5M scales) ----------------
+  ccmatrix:
+    category: web_mined
+    description: |
+      CCMatrix zh-en mined from CommonCrawl. Optional, off by default — only
+      enabled in profile=full_xl since download is 30-80 GB. Strict LASER
+      filter applied at prep time.
+    url: https://object.pouta.csc.fi/OPUS-CCMatrix/v1/moses/en-zh.txt.zip
+    format: moses_zip
+    expected_pair_files:
+      en: CCMatrix.en-zh.en
+      zh: CCMatrix.en-zh.zh
+    sample_lines: 8000000
 
 # How much of each (post-filter) source contributes to the final mix.
 # Used by 05_create_subsets.py to do stratified sampling for each scale.
+#
+# Two mixes provided. `default` is used for ≤500K scales — small, high-quality
+# bias. `large_scale` is used for ≥1M scales — shifts toward web-mined sources
+# that actually have enough volume. The subset script picks which to use based
+# on the requested scale.
 source_mix:
   news_commentary_v18: 0.30
   ted2020:             0.25
   wikimatrix:          0.25
   open_subtitles:      0.15
   un_pc:               0.05
+
+source_mix_large_scale:
+  news_commentary_v18: 0.05    # capped by source size
+  ted2020:             0.05    # capped by source size
+  wikimatrix:          0.20
+  open_subtitles:      0.35
+  un_pc:               0.20
+  ccmatrix:            0.15
+large_scale_threshold: 750000  # at and above this requested size, use large_scale mix
 
 # Filtering thresholds applied during 02_prepare_data.py
 filters:
@@ -102,3 +131,7 @@ profiles:
     include: [flores200, news_commentary_v18, ted2020]
   full:
     include: [flores200, news_commentary_v18, ted2020, wikimatrix, open_subtitles, un_pc]
+  # full_xl additionally pulls CCMatrix (~30-80 GB download). Needed to comfortably
+  # reach the 5M scale after filtering. Use only when 1M/5M scales are wanted.
+  full_xl:
+    include: [flores200, news_commentary_v18, ted2020, wikimatrix, open_subtitles, un_pc, ccmatrix]

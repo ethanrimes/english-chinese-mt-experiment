@@ -5,13 +5,14 @@
 > **How does English↔Chinese translation quality scale with parallel-data volume when the
 > base LM has zero Chinese in its pretraining?**
 
-Operationalized as: train **four separate models** of SmolLM2-360M, one per data scale
-— 10K / 50K / 100K / 500K parallel pairs (nested subsets, same hyperparameters per run).
-Within each training run we save a **time-series of checkpoint snapshots** (every
-`save_steps`), evaluate each snapshot on FLORES-200 dev/test in both directions
-(BLEU / chrF++ / COMET), and also probe English-only perplexity to detect catastrophic
-forgetting. The deliverable is four learning curves — one per data scale — that together
-form the quality-vs-data picture.
+Operationalized as: train **six separate models** of SmolLM2-360M, one per data scale
+— 10K / 50K / 100K / 500K / 1M / 5M parallel pairs (nested subsets, same hyperparameters
+per run, epoch count tuned so the largest scales aren't gratuitously expensive). Within
+each training run we save a **time-series of checkpoint snapshots** (every `save_steps`),
+evaluate each snapshot on FLORES-200 dev/test in both directions (BLEU / chrF++ / COMET),
+and also probe English-only perplexity to detect catastrophic forgetting. The deliverable
+is six learning curves — one per data scale — that together form the quality-vs-data
+picture. Per-scale expected metrics live in `docs/benchmarks.md`.
 
 ## 2. Base model — SmolLM2-360M
 
@@ -74,18 +75,32 @@ Applied in order to every source:
 
 ### 4.3 Nested data scales
 
-We materialize 4 strictly nested splits:
+We materialize 6 strictly nested splits:
 
 ```
-splits/scale_10k.parquet     ⊂  splits/scale_50k.parquet
-                             ⊂  splits/scale_100k.parquet
-                             ⊂  splits/scale_500k.parquet
+splits/scale_10000.parquet      ⊂  splits/scale_50000.parquet
+                                ⊂  splits/scale_100000.parquet
+                                ⊂  splits/scale_500000.parquet
+                                ⊂  splits/scale_1000000.parquet
+                                ⊂  splits/scale_5000000.parquet
 ```
 
-Sampling: stratified mix across sources so each scale has the same source-domain
-distribution (default mix: 30% News-Commentary, 25% TED2020, 25% WikiMatrix,
-15% OpenSubtitles, 5% UN). Within each source, sample with a fixed RNG seed so the
-smaller scales are exact prefixes of the larger ones.
+Sampling: stratified mix across sources so each scale has roughly the same
+source-domain distribution. **Two mixes** are defined in `configs/data.yaml`
+because hitting 1M+ pairs from clean-parallel sources alone is impossible:
+
+| Source             | `default` mix (≤500K) | `large_scale` mix (≥1M) |
+|--------------------|-----------------------|-------------------------|
+| News-Commentary v18| 30%                   | 5% (capped by source)   |
+| TED2020            | 25%                   | 5% (capped by source)   |
+| WikiMatrix         | 25%                   | 20%                     |
+| OpenSubtitles      | 15%                   | 35%                     |
+| MultiUN            | 5%                    | 20%                     |
+| CCMatrix           | —                     | 15%                     |
+
+The 5M scale additionally requires the `full_xl` download profile (pulls
+CCMatrix, ~30-80 GB). Within each source, rows are sorted by a stable
+`xxhash(en|zh, seed)` so smaller scales are **exact prefixes** of larger ones.
 
 Direction: each pair appears **twice** — once as `<|en2zh|>` and once as `<|zh2en|>` — so
 the model learns both directions from the same data. Final per-scale row count = 2× pair
@@ -158,10 +173,21 @@ WARN and the run config can opt into:
 | Container Registry | basic | custom training image | ~$5/month |
 | App Insights | included via AML | log aggregation | included |
 
-The 4-run sweep at scale_500k is the heaviest run: ~500K pairs × 2 directions × 3 epochs
-≈ 3M examples, at bsz 64 ≈ 47K steps. On a single A100-80GB at ~3 steps/sec ≈ 4.5 hours.
-Full sweep (10K + 50K + 100K + 500K) ≈ 6-8 hours of A100 time ≈ **~$25-30 per full
-sweep**.
+Per-scale rough wallclock on a single A100-80GB (bsz 64 effective, ~3 steps/sec):
+
+| Scale | Pairs   | Examples (× 2 dir) | Epochs | Steps    | Hours | Cost  |
+|-------|---------|--------------------|--------|----------|-------|-------|
+| 10K   | 10,000  | 20,000             | 10     | ~3,100   | 0.3   | ~$1   |
+| 50K   | 50,000  | 100,000            | 6      | ~9,400   | 0.9   | ~$3   |
+| 100K  | 100,000 | 200,000            | 5      | ~15,600  | 1.4   | ~$5   |
+| 500K  | 500,000 | 1,000,000          | 3      | ~46,900  | 4.3   | ~$15  |
+| 1M    | 1,000,000 | 2,000,000        | 2      | ~62,500  | 5.8   | ~$20  |
+| 5M    | 5,000,000 | 10,000,000       | 1      | ~156,300 | 14.5  | ~$50  |
+
+Full 6-run sweep ≈ **27 hours of A100 time ≈ ~$95** for the training. Add
+~$10 for data download/processing time and storage. **Recommended: run all 6
+in parallel** on a 6-node compute cluster — total wallclock ≈ 14.5 hours
+(bounded by the 5M run), total cost still ~$95.
 
 ## 7. Observability & snapshots
 
@@ -180,8 +206,8 @@ sweep**.
 
 ## 8. Deliverables
 
-1. **Four trained models**, one per data scale (10K / 50K / 100K / 500K), each bidirectional
-   (en↔zh).
+1. **Six trained models**, one per data scale (10K / 50K / 100K / 500K / 1M / 5M), each
+   bidirectional (en↔zh).
 2. **Checkpoint time-series per model** — every `save_steps` plus every epoch boundary —
    so we can plot a training-progress curve for each scale and roll back to any prior
    snapshot.

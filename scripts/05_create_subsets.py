@@ -47,7 +47,7 @@ def _stable_hash(row: dict, seed: int) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-config", default="configs/data.yaml")
-    ap.add_argument("--sizes", default="10000,50000,100000,500000")
+    ap.add_argument("--sizes", default="10000,50000,100000,500000,1000000,5000000")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
@@ -72,7 +72,16 @@ def main() -> int:
     for r in all_rows:
         by_source.setdefault(r["source"], []).append(r)
 
-    mix = dict(cfg.source_mix)
+    # Pick the mix based on the largest requested scale. The same mix is used
+    # for *all* requested scales in a single call (so nesting holds even when
+    # scales straddle the threshold — train all-small or all-large together).
+    use_large = biggest >= int(cfg.get("large_scale_threshold", 750_000))
+    mix_cfg_key = "source_mix_large_scale" if use_large else "source_mix"
+    if mix_cfg_key not in cfg:
+        logger.warning(f"{mix_cfg_key} not found in data.yaml; falling back to source_mix")
+        mix_cfg_key = "source_mix"
+    mix = dict(cfg[mix_cfg_key])
+    logger.info(f"using mix '{mix_cfg_key}' for biggest scale {biggest:,}")
     # Drop sources that have no mix weight (e.g., flores200 if it sneaks in).
     by_source = {s: rs for s, rs in by_source.items() if s in mix}
 

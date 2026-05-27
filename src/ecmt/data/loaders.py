@@ -150,4 +150,10 @@ LOADERS: dict[str, Any] = {
         cfg["expected_pair_files"]["zh"],
         cfg.get("sample_lines"),
     ),
+    "ccmatrix": lambda raw_dir, cfg: load_moses_zip(
+        raw_dir, "ccmatrix",
+        cfg["expected_pair_files"]["en"],
+        cfg["expected_pair_files"]["zh"],
+        cfg.get("sample_lines"),
+    ),
 }

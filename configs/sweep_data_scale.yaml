@@ -38,3 +38,21 @@ runs:
       trainer.num_train_epochs: 3
       trainer.eval_steps: 500
       trainer.save_steps: 500
+
+  - name: scale-1m
+    scale: 1000000
+    experiment_tag: scale_1m
+    overrides:
+      trainer.num_train_epochs: 2
+      trainer.eval_steps: 1000
+      trainer.save_steps: 1000
+
+  - name: scale-5m
+    scale: 5000000
+    experiment_tag: scale_5m
+    overrides:
+      trainer.num_train_epochs: 1
+      trainer.eval_steps: 2000
+      trainer.save_steps: 2000
+      # 5M pairs * 2 directions = 10M examples; at bsz 64 ≈ 156K steps.
+      # On a single A100-80GB ≈ 15-20 hours. Consider multi-GPU for this scale.

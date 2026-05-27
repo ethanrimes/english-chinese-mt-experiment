@@ -122,6 +122,7 @@ DOWNLOADERS = {
     "wikimatrix":          lambda c, r: download_moses_zip("wikimatrix", c, r),
     "open_subtitles":      lambda c, r: download_moses_zip("open_subtitles", c, r),
     "un_pc":               lambda c, r: download_moses_zip("un_pc", c, r),
+    "ccmatrix":            lambda c, r: download_moses_zip("ccmatrix", c, r),
     "flores200":           download_flores200,
     "ted2020":             download_ted2020_opus100,
 }
