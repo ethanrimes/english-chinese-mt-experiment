@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ecmt"
+version = "0.1.0"
+description = "English-Chinese MT experiment: teaching an English-only LM to translate."
+requires-python = ">=3.10,<3.13"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Ethan Kallett" }]
+
+dependencies = [
+    # core ML
+    "torch>=2.5.0",
+    "transformers>=4.46.0",
+    "accelerate>=1.1.0",
+    "datasets>=3.1.0",
+    "tokenizers>=0.20.0",
+    "sentencepiece>=0.2.0",
+    "peft>=0.13.0",
+    "trl>=0.12.0",
+    # data prep
+    "pandas>=2.2.0",
+    "pyarrow>=17.0.0",
+    "fasttext-langdetect>=1.0.5",
+    "regex>=2024.9.0",
+    "tqdm>=4.66.0",
+    "xxhash>=3.5.0",
+    # eval
+    "sacrebleu>=2.4.3",
+    "unbabel-comet>=2.2.4",
+    # config & logging
+    "omegaconf>=2.3.0",
+    "pyyaml>=6.0.2",
+    "rich>=13.9.0",
+    "loguru>=0.7.2",
+    # tracking
+    "wandb>=0.18.0",
+    "mlflow>=2.17.0",
+    "tensorboard>=2.18.0",
+    # misc
+    "huggingface-hub>=0.26.0",
+    "requests>=2.32.0",
+]
+
+[project.optional-dependencies]
+azure = [
+    "azure-ai-ml>=1.21.0",
+    "azure-identity>=1.18.0",
+    "azure-storage-blob>=12.23.0",
+    "azure-keyvault-secrets>=4.8.0",
+]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.7.0",
+    "pre-commit>=4.0.0",
+    "ipykernel>=6.29.0",
+    "jupyter>=1.1.0",
+]
+deepspeed = [
+    "deepspeed>=0.15.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501"]  # handled by formatter
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra -q"

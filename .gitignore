@@ -1,0 +1,108 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# --- Virtual envs ---
+.venv/
+venv/
+env/
+.python-version
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+credentials.json
+azure-credentials.json
+
+# --- Experiment tracking ---
+wandb/
+mlruns/
+mlartifacts/
+.aim/
+
+# --- Azure ML local state ---
+.azureml/
+outputs/
+logs/
+
+# --- Data: raw, processed, splits (too large for git) ---
+data/raw/
+data/interim/
+data/processed/
+data/splits/
+data/cache/
+data/.cache/
+!data/README.md
+!data/**/.gitkeep
+
+# --- Model artifacts (too large for git) ---
+checkpoints/
+models/cached/
+models/extended/
+models/runs/
+*.bin
+*.safetensors
+*.gguf
+*.pt
+*.pth
+*.onnx
+!**/README.md
+
+# --- Tokenizer artifacts (built, not source) ---
+tokenizers/built/
+*.model
+!configs/**/*.model
+
+# --- HuggingFace caches if placed in-tree ---
+.cache/
+hf_cache/
+
+# --- Large bulk formats anywhere under data/ or downloads/ ---
+downloads/
+data/**/*.parquet
+data/**/*.arrow
+data/**/*.jsonl
+data/**/*.json
+data/**/*.txt
+data/**/*.tsv
+data/**/*.csv
+data/**/*.tmx
+data/**/*.gz
+data/**/*.zip
+data/**/*.tar
+data/**/*.tar.gz
+
+# --- Eval reports auto-generated ---
+reports/runs/
+reports/figures/
+
+# --- Misc ---
+scratch.md
+notes-local.md
+*.log
