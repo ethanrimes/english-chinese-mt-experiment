@@ -1,0 +1,17 @@
+# Weights & Biases connection. Apply with:
+#   az ml connection create -f azure/wandb_connection.yaml \
+#     -w ecmt-ws -g ecmt-rg \
+#     --set credentials.key=<YOUR_WANDB_API_KEY>
+#
+# The --set flag injects the secret at apply time so it never lands in the
+# YAML file or in your shell history. AML stores it in the workspace's
+# managed Key Vault; jobs reference it as ${{secrets.WANDB_API_KEY}}.
+$schema: https://azuremlschemas.azureedge.net/latest/connection.schema.json
+name: wandb-key
+type: custom
+target: https://api.wandb.ai
+credentials:
+  type: api_key
+  key: REPLACE_AT_APPLY_TIME    # overridden by --set credentials.key=...
+metadata:
+  description: API key for Weights & Biases experiment tracking.
