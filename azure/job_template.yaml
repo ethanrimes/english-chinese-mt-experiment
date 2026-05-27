@@ -9,7 +9,7 @@ description: "ECMT SFT run at data scale {{ scale }}."
 code: ../
 
 environment: azureml:ecmt-pytorch@latest
-compute: azureml:gpu-a100-80g
+compute: azureml:gpu-a10-24g           # override per-job for 1M/5M runs
 
 inputs:
   splits:

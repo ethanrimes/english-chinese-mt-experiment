@@ -30,8 +30,13 @@ def _strip_control(s: str) -> str:
 
 
 def load_news_commentary_v18(raw_dir: Path) -> Iterator[dict[str, str]]:
-    """News-Commentary v18: TSV.gz with columns en\tzh."""
-    src_path = raw_dir / "news_commentary_v18" / "news-commentary-v18.1.en-zh.tsv.gz"
+    """News-Commentary v18: TSV.gz with columns en\tzh. Picks whatever .tsv.gz lives in raw."""
+    src_dir = raw_dir / "news_commentary_v18"
+    matches = list(src_dir.glob("news-commentary-*.en-zh.tsv.gz"))
+    if not matches:
+        logger.warning(f"news_commentary_v18: no .tsv.gz found under {src_dir}; skipping")
+        return
+    src_path = matches[0]
     with gzip.open(src_path, "rt", encoding="utf-8", errors="replace") as fh:
         for line in fh:
             parts = line.rstrip("\n").split("\t")

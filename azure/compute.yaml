@@ -1,13 +1,18 @@
 # GPU compute cluster spec. Apply with:
 #   az ml compute create -f azure/compute.yaml -w <ws> -g <rg>
+#
+# Default: Standard_NV36ads_A10_v5 (1× A10 24GB, ~$1.04/hr).
+# SmolLM2-360M with bsz=16 max_seq=1024 bf16 uses ~14 GB — fits comfortably.
+# For the 5M-pair scale, switch to Standard_NC24ads_A100_v4 (1× A100 80GB,
+# ~$3.40/hr) since A10 is ~2-3× slower per step. See azure/README.md.
 $schema: https://azuremlschemas.azureedge.net/latest/amlCompute.schema.json
-name: gpu-a100-80g
+name: gpu-a10-24g
 type: amlcompute
-size: Standard_NC24ads_A100_v4   # 1× A100 80GB
+size: Standard_NV36ads_A10_v5    # 1× A10 24GB
 min_instances: 0
 max_instances: 4
 idle_time_before_scale_down: 600  # 10 minutes
 tier: dedicated
-description: 1× A100-80GB cluster for ECMT training runs.
+description: 1× A10-24GB cluster for ECMT training runs. A100 cluster recommended only for 5M scale.
 tags:
   project: ecmt

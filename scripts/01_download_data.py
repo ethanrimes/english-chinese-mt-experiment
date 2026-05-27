@@ -58,7 +58,8 @@ def http_download(url: str, dest: Path, *, retries: int = 3) -> None:
 
 
 def download_news_commentary_v18(cfg: dict, raw_root: Path) -> None:
-    dest = raw_root / "news_commentary_v18" / "news-commentary-v18.1.en-zh.tsv.gz"
+    fname = cfg["url"].rsplit("/", 1)[-1]
+    dest = raw_root / "news_commentary_v18" / fname
     http_download(cfg["url"], dest)
 
 
@@ -70,32 +71,49 @@ def download_moses_zip(source_id: str, cfg: dict, raw_root: Path) -> None:
 
 
 def download_flores200(cfg: dict, raw_root: Path) -> None:
-    """FLORES-200 via HF. We save dev + devtest to parquet for fast reload."""
-    from datasets import load_dataset
+    """FLORES-200 via Facebook's public NLLB tarball.
+
+    The tarball flattens to flores200_dataset/{dev,devtest}/{lang_code}.{split}
+    with one sentence per line. We extract eng_Latn and zho_Hans, zip them
+    line-by-line (FLORES guarantees same row count + alignment across languages),
+    and save dev + devtest parquet for fast reload.
+    """
+    import tarfile
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
 
     out_dir = raw_root / "flores200"
     out_dir.mkdir(parents=True, exist_ok=True)
+    tarball = out_dir / "flores200_dataset.tar.gz"
+    http_download(cfg["url"], tarball)
+
+    # Extract the four files we need. Tar members may be prefixed with './'.
+    needed = {f"flores200_dataset/{s}/{L}.{s}" for s in cfg["splits"] for L in ("eng_Latn", "zho_Hans")}
+    extracted: dict[str, list[str]] = {}
+    with tarfile.open(tarball, "r:gz") as tf:
+        for member in tf.getmembers():
+            normalized = member.name.lstrip("./")
+            if normalized in needed:
+                f = tf.extractfile(member)
+                if f is None:
+                    continue
+                extracted[normalized] = f.read().decode("utf-8").splitlines()
+
     for split in cfg["splits"]:
         out_path = out_dir / f"{split}.parquet"
         if out_path.exists():
-            logger.info(f"  flores200/{split}: parquet exists — skipping")
+            logger.info(f"  flores200/{split}: parquet exists — skipping write")
             continue
-        # FLORES+ on HF has each lang as a separate config; we load and zip the two we need.
-        logger.info(f"  flores200/{split}: loading eng_Latn + zho_Hans from HF")
-        try:
-            en_ds = load_dataset(cfg["huggingface"], "eng_Latn", split=split)
-            zh_ds = load_dataset(cfg["huggingface"], "zho_Hans", split=split)
-        except Exception as e:
-            logger.error(f"  flores200/{split}: HF load failed: {e!r}")
-            raise
-        assert len(en_ds) == len(zh_ds), "flores200 en/zh row counts must match"
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-
-        rows = [
-            {"eng_Latn": en_row["text"], "zho_Hans": zh_row["text"], "id": en_row.get("id", i)}
-            for i, (en_row, zh_row) in enumerate(zip(en_ds, zh_ds))
-        ]
+        en_lines = extracted.get(f"flores200_dataset/{split}/eng_Latn.{split}", [])
+        zh_lines = extracted.get(f"flores200_dataset/{split}/zho_Hans.{split}", [])
+        if not en_lines or not zh_lines:
+            logger.error(f"  flores200/{split}: missing extracted lang file(s)")
+            continue
+        if len(en_lines) != len(zh_lines):
+            logger.warning(f"  flores200/{split}: en={len(en_lines)} zh={len(zh_lines)} mismatch; truncating")
+        n = min(len(en_lines), len(zh_lines))
+        rows = [{"eng_Latn": en_lines[i].strip(), "zho_Hans": zh_lines[i].strip(), "id": i} for i in range(n)]
         pq.write_table(pa.Table.from_pylist(rows), out_path)
         logger.info(f"  flores200/{split}: wrote {len(rows)} rows to {out_path}")
 

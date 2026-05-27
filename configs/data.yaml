@@ -17,9 +17,13 @@ sources:
   # ---------------- Evaluation only (never seen during training) ----------------
   flores200:
     category: eval
-    description: FLORES-200 dev + devtest. Professional Wikipedia-domain pairs.
-    huggingface: openlanguagedata/flores_plus
-    config: default
+    description: |
+      FLORES-200 dev + devtest. Professional Wikipedia-domain pairs.
+      Downloaded directly from Facebook's NLLB public file CDN — no auth,
+      no HF gating. ~26 MB tarball with 200 languages, of which we extract
+      eng_Latn and zho_Hans.
+    url: https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz
+    format: tar_gz
     splits: [dev, devtest]
     langs:
       eng_Latn: en
@@ -29,7 +33,7 @@ sources:
   news_commentary_v18:
     category: clean_parallel
     description: News-Commentary v18 (zh-en). Newswire register. ~313K pairs.
-    url: https://data.statmt.org/news-commentary/v18.1/training/news-commentary-v18.1.en-zh.tsv.gz
+    url: https://data.statmt.org/news-commentary/v18/training/news-commentary-v18.en-zh.tsv.gz
     format: tsv_gz
     columns: [en, zh]
 
