@@ -50,6 +50,9 @@ mlartifacts/
 .azureml/
 outputs/
 logs/
+azure/.uploaded.json
+azure/.jobs.jsonl
+azure/quota_*.json
 
 # --- Data: raw, processed, splits (too large for git) ---
 data/raw/
@@ -106,3 +109,6 @@ reports/figures/
 scratch.md
 notes-local.md
 *.log
+
+.claude/scheduled_tasks.lock
+

@@ -120,7 +120,7 @@ def build_and_train(
         weight_decay=float(t["weight_decay"]),
         warmup_ratio=float(t["warmup_ratio"]),
         lr_scheduler_type=str(t["lr_scheduler_type"]),
-        max_seq_length=int(t["max_seq_length"]),
+        max_length=int(t["max_seq_length"]),
         gradient_checkpointing=bool(t["gradient_checkpointing"]),
         bf16=bool(t["bf16"]),
         fp16=bool(t.get("fp16", False)),
